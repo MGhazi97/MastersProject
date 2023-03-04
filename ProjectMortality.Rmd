@@ -28,11 +28,9 @@ setwd("~/Desktop/DATA")
 #crudedata1_seer <- read.csv("crudedata1_seer.csv", header = T)
 #sheet_1 <- read.csv("sheet 1.csv", header = T)
 #sheet_3 <- read.csv("sheet 3.csv", header = T)
-Leukmia_byState <- read.csv("Leukmia_byState.csv", header = TRUE)
 
 Leukemia_Mortality <- read.csv("Leukemia_Mortality.csv", header = TRUE)
 
-#View(Leukmia_byState)
 #View(Leukemia_Mortality)
 ```
 
