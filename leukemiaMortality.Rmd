@@ -1,0 +1,257 @@
+---
+title: "(Mortality)"
+author: "Mustapha Ghazi"
+date: "2023-02-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyverse)
+library(segmented)
+library(seas)
+library(readxl)
+library(readr)
+library(reshape2)
+library(data.table)
+library(mosaic)
+library(modelr)
+library(hexbin)
+library(nortest)
+library(rmarkdown)
+library(dplyr)
+```
+
+```{r}
+setwd("~/Desktop/DATA")
+#crudedata1_seer <- read.csv("crudedata1_seer.csv", header = T)
+#sheet_1 <- read.csv("sheet 1.csv", header = T)
+#sheet_3 <- read.csv("sheet 3.csv", header = T)
+
+Leukemia_Mortality <- read.csv("Leukemia_Mortality.csv", header = TRUE)
+
+#View(Leukemia_Mortality)
+```
+
+Some data cleaning
+```{r, results = FALSE}
+#base <- crudedata1_seer %>% filter(Sex != 0 & Year.of.death != 0) %>% dplyr::select(Age.recode.with..1.year.olds, Sex, Year.of.death)
+#basicData <- base %>% rename("Age Recode (< 1)" = "Age.recode.with..1.year.olds", "Year of Death" = "Year.of.death"); basicData
+
+leukemiaMortality <- Leukemia_Mortality %>% filter(State == 2 | State == 4 | State == 6 | State == 10 | State == 13 | State == 15 | State == 17 | State == 18 | State == 21 | State == 30 | State == 31 | State == 32 | State == 43 | State == 44 | State == 47); leukemiaMortality
+```
+
+Ages and their distributions
+```{r}
+ageCount <- leukemiaMortality %>% filter(!is.na(Count)) %>% count(Age.recode.with..1.year.olds) ; ageCount # ok so this isnt how many died but rather how many entries we have. Kinda useless unless you wanna descibe your dataset not the information conveyed
+
+sum(ageCount$n) # see, matches the number of rows when leukemiaMortality %>% filter(!is.na(Count)) is done
+
+deathAges <- leukemiaMortality %>% filter(!is.na(Count)) %>% dplyr::select(Age.recode.with..1.year.olds, Count) %>% group_by(Age.recode.with..1.year.olds) %>% count(Age.recode.with..1.year.olds, wt=Count) %>% rename("Age (recode with < 1 years old)" = "Age.recode.with..1.year.olds", "Count" = "n"); deathAges
+
+n <- sum(deathAges$Count)
+
+deathAges <- mutate(deathAges, Percent = 100*Count/n); deathAges
+
+ggplot(deathAges, aes(deathAges$'Age (recode with < 1 years old)')) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("Age (recode with < 1 years old)") + ggtitle("Deaths by Age Group")
+
+ggplot(deathAges, aes(x = `Age (recode with < 1 years old)`, y = Count)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Count), hjust = -0.5)  + coord_flip() + 
+  scale_x_continuous(breaks = seq(0, 100, by = 10)) +
+  scale_y_continuous(labels = function(x) format(x, scientific=FALSE)) +
+  ylab("Count") +
+  xlab("Age (recode with < 1 years old)") +
+  ggtitle("Deaths by Age Group")
+```
+
+Sex and their distributions
+```{r}
+sexCount <- leukemiaMortality %>% filter(!is.na(Count)) %>% count(Sex) ; sexCount # ok so this isnt how many died but rather how many entries we have. Kinda useless unless you wanna descibe your dataset not the information conveyed
+
+sum(sexCount$n) # see, matches the number of rows when leukemiaMortality %>% filter(!is.na(Count)) is done
+
+deathSex <- leukemiaMortality %>% filter(!is.na(Count)) %>% dplyr::select(Sex, Count) %>% group_by(Sex) %>% count(Sex, wt=Count) %>% rename("Count" = "n"); deathSex
+
+n <- sum(deathSex$Count)
+
+deathSex <- mutate(deathSex, Percent = 100*Count/n); deathSex
+
+ggplot(deathSex, aes(Sex)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("Sex") + ggtitle("Deaths by Sex Group")
+```
+
+State and their distributions
+```{r}
+stateCount <- leukemiaMortality %>% filter(!is.na(Count)) %>% count(State) ; stateCount # ok so this isnt how many died but rather how many entries we have. Kinda useless unless you wanna descibe your dataset not the information conveyed
+
+sum(stateCount$n) # see, matches the number of rows when leukemiaMortality %>% filter(!is.na(Count)) is done
+
+deathState <- leukemiaMortality %>% filter(!is.na(Count)) %>% dplyr::select(State, Count) %>% group_by(State) %>% count(State, wt=Count) %>% rename("Count" = "n"); deathState
+
+n <- sum(deathState$Count)
+
+deathState <- mutate(deathState, Percent = 100*Count/n); deathState
+
+deathState$State <- as.character(deathState$State)
+
+ggplot(deathState, aes(State)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("State") + ggtitle("Deaths by State") + coord_flip()
+```
+
+
+YOD and their distributions
+```{r}
+yodCount <- leukemiaMortality %>% filter(!is.na(Count)) %>% count(Year.of.death.recode) ; yodCount # ok so this isnt how many died but rather how many entries we have. Kinda useless unless you wanna descibe your dataset not the information conveyed
+
+sum(yodCount$n) # see, matches the number of rows when leukemiaMortality %>% filter(!is.na(Count)) is done
+
+deathYOD <- leukemiaMortality %>% filter(!is.na(Count)) %>% filter(Year.of.death.recode != 0) %>% dplyr::select(Year.of.death.recode, Count) %>% group_by(Year.of.death.recode) %>% count(Year.of.death.recode, wt=Count) %>% rename("Count" = "n"); deathYOD
+
+n <- sum(deathYOD$Count)
+
+deathYOD <- mutate(deathYOD, Percent = 100*Count/n); deathYOD
+
+ggplot(deathYOD, aes(Year.of.death.recode)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("Year of Death") + ggtitle("Deaths by Year of Death") + coord_flip()
+```
+
+Race and their distributions
+```{r}
+raceCount <- leukemiaMortality %>% filter(!is.na(Count)) %>% count(Race.recode..White..Black..Other.) ; raceCount # ok so this isnt how many died but rather how many entries we have. Kinda useless unless you wanna descibe your dataset not the information conveyed
+
+sum(raceCount$n) # see, matches the number of rows when leukemiaMortality %>% filter(!is.na(Count)) is done
+
+deathRace <- leukemiaMortality %>% filter(!is.na(Count)) %>% dplyr::select(Race.recode..White..Black..Other., Count) %>% group_by(Race.recode..White..Black..Other.) %>% count(Race.recode..White..Black..Other., wt=Count) %>% rename("Count" = "n"); deathRace
+
+n <- sum(deathRace$Count)
+
+deathRace <- mutate(deathRace, Percent = 100*Count/n); deathRace
+
+ggplot(deathRace, aes(Race.recode..White..Black..Other.)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("Race") + ggtitle("Deaths by Race") + coord_flip()
+```
+
+Exporting the new data
+#```{r}
+leukemiaMortality2 <- read.csv("leukemiaMortality2.csv", header = TRUE); 
+leukemiaMortality2 <- leukemiaMortality2 %>% 
+   mutate(Race = ifelse(Race == 0, "All", 
+                        ifelse(Race == 1, "White", 
+                        ifelse(Race == 2, "Black",
+                        ifelse(Race == 3, "Other", "Unspecified"))))) %>%
+   mutate(Age.Group = ifelse(Age.Group == 0, "00 years", 
+                        ifelse(Age.Group == 1, "01-04 years", 
+                        ifelse(Age.Group == 2, "05-09 years",
+                        ifelse(Age.Group == 3, "10-14 years",
+                        ifelse(Age.Group == 4, "15-19 years", 
+                        ifelse(Age.Group == 5, "20-24 years",
+                        ifelse(Age.Group == 6, "25-29 years",
+                        ifelse(Age.Group == 7, "30-34 years", 
+                        ifelse(Age.Group == 8, "35-39 years",
+                        ifelse(Age.Group == 9, "40-44 years",
+                        ifelse(Age.Group == 10, "45-49 years", 
+                        ifelse(Age.Group == 11, "50-54 years",
+                        ifelse(Age.Group == 12, "55-59 years",  
+                        ifelse(Age.Group == 13, "60-64 years", 
+                        ifelse(Age.Group == 14, "65-69 years",
+                        ifelse(Age.Group == 15, "70-74 years",
+                        ifelse(Age.Group == 16, "75-79 years", 
+                        ifelse(Age.Group == 17, "80-84 years",
+                        ifelse(Age.Group == 18, "85+ years", "Unknown"))))))))))))))))))))  %>%
+   mutate(Year.of.Death = ifelse(Year.of.Death == 0, "1969-2019", 
+                        ifelse(Year.of.Death == 1, "1969-1971", 
+                        ifelse(Year.of.Death == 2, "1972-1974",
+                        ifelse(Year.of.Death == 3, "1975-1977",
+                        ifelse(Year.of.Death == 4, "1978-1980", 
+                        ifelse(Year.of.Death == 5, "1981-1983",
+                        ifelse(Year.of.Death == 6, "1984-1986",
+                        ifelse(Year.of.Death == 7, "1987-1989", 
+                        ifelse(Year.of.Death == 8, "1990-1992",
+                        ifelse(Year.of.Death == 9, "1993-1995",
+                        ifelse(Year.of.Death == 10, "1996-1998", 
+                        ifelse(Year.of.Death == 11, "1999-2001",
+                        ifelse(Year.of.Death == 12, "2002-2004",  
+                        ifelse(Year.of.Death == 13, "2005-2007", 
+                        ifelse(Year.of.Death == 14, "2008-2010",
+                        ifelse(Year.of.Death == 15, "2011-2015", "2016-2020"))))))))))))))))) %>%
+   mutate(Sex = ifelse(Sex == 0, "Male and female", 
+                        ifelse(Sex == 1, "Male", "Female"))) %>%
+   mutate(State = ifelse(State == 2, "Arizona", 
+                        ifelse(State == 4, "California", 
+                        ifelse(State == 6, "Connecticut",
+                        ifelse(State == 10, "Georgia",
+                        ifelse(State == 13, "Illinois", 
+                        ifelse(State == 15, "Iowa",
+                        ifelse(State == 17, "Kentucky",
+                        ifelse(State == 18, "Louisiana", 
+                        ifelse(State == 21, "Massachusetts",
+                        ifelse(State == 30, "New Jersey",
+                        ifelse(State == 31, "New Mexico", 
+                        ifelse(State == 32, "New York",
+                        ifelse(State == 43, "Texas",  
+                        ifelse(State == 44, "Utah", "Washington")))))))))))))))
+
+#leukemiaMortality2
+
+#write.csv(leukemiaMortality2, "leukemiaMortalityDescription.csv", row.names=FALSE)
+#```
+
+
+Redoing all the graphs with the Description data
+
+```{r}
+leukemiaMortalityDesc <- read.csv("leukemiaMortalityDescription.csv", header = TRUE);
+
+deathAges2 <- leukemiaMortalityDesc %>% filter(!is.na(Count)) %>% dplyr::select(Age.Group, Count) %>% group_by(Age.Group) %>% count(Age.Group, wt=Count) %>% rename("Count" = "n"); deathAges2
+
+n <- sum(deathAges2$Count)
+
+deathAges2 <- mutate(deathAges2, Percent = 100*Count/n); deathAges2
+
+ggplot(deathAges2, aes(x = Age.Group, y = Count, fill = Age.Group)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Count), hjust = -0.5)  + coord_flip() +
+  scale_y_continuous(labels = function(x) format(x, scientific=FALSE)) +
+  ylab("Count") +
+  xlab("Age (recode with < 1 years old)") + 
+  ggtitle("Deaths by Age Group") + theme(legend.position="none")
+```
+
+```{r}
+deathSex2 <- leukemiaMortalityDesc %>% filter(!is.na(Count)) %>% filter(Sex != 'Male and female') %>% dplyr::select(Sex, Count) %>% group_by(Sex) %>% count(Sex, wt=Count) %>% rename("Count" = "n"); deathSex2
+
+n <- sum(deathSex2$Count)
+
+deathSex2 <- mutate(deathSex2, Percent = 100*Count/n); deathSex2
+
+ggplot(deathSex2, aes(Sex, fill = Sex)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("Sex") + ggtitle("Deaths by Sex Group") + theme(legend.position="none")
+```
+```{r}
+deathState2 <- leukemiaMortalityDesc %>% filter(!is.na(Count)) %>% dplyr::select(State, Count) %>% group_by(State) %>% count(State, wt=Count) %>%  rename("Count" = "n"); arrange(deathState2, Count)
+
+
+n <- sum(deathState2$Count)
+
+deathState2 <- mutate(deathState2, Percent = 100*Count/n); arrange(deathState2, Count)
+
+ggplot(deathState2, aes(reorder(State, (Count)), fill = State)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("State") + ggtitle("Deaths by State") + coord_flip() + theme(legend.position="none")
+```
+
+```{r}
+deathYOD2 <- leukemiaMortalityDesc %>% filter(!is.na(Count)) %>% dplyr::select(Year.of.Death, Count) %>% filter(Year.of.Death != "1969-2019") %>% group_by(Year.of.Death) %>% count(Year.of.Death, wt=Count) %>% rename("Count" = "n"); deathYOD2
+
+n <- sum(deathYOD2$Count)
+
+deathYOD2 <- mutate(deathYOD2, Percent = 100*Count/n); deathYOD2
+
+ggplot(deathYOD2, aes(Year.of.Death, fill = Year.of.Death)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("Year of Death") + ggtitle("Deaths by Year of Death") + coord_flip() + theme(legend.position="none")
+```
+
+```{r}
+deathRace2 <- leukemiaMortalityDesc %>% filter(!is.na(Count)) %>% filter(Race != 'All') %>% dplyr::select(Race, Count) %>% group_by(Race) %>% count(Race, wt=Count) %>% rename("Count" = "n"); arrange(deathRace2, Count)
+
+n <- sum(deathRace2$Count)
+
+deathRace2 <- mutate(deathRace2, Percent = 100*Count/n); arrange(deathRace2, Count)
+
+ggplot(deathRace2, aes(reorder(Race, (Count)), fill = Race)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("Race") + ggtitle("Deaths by Race") + coord_flip() + theme(legend.position="none")
+```
+
