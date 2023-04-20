@@ -2,7 +2,9 @@
 title: "(Incidence)"
 author: "Mustapha Ghazi"
 date: "2023-03-04"
-output: html_document
+output: 
+  html_document: 
+    self_contained: FALSE
 ---
 
 ```{r setup, include=FALSE}
@@ -219,6 +221,14 @@ ggplot(incidenceAges2, aes(x = Age.Group, y = Count, fill = Age.Group)) +
   ylab("Count") +
   xlab("Age (recode with < 1 years old)") + theme(legend.position="none") + 
   ggtitle("Incidences by Age Group")
+
+ggplot(incidenceAges2, aes(x = Age.Group, y = Count/sum(Count), fill = Age.Group)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  ylab("Density") +
+  xlab("Age (recode with < 1 years old)") +
+  theme(legend.position="none") +
+  ggtitle("Incidences by Age Group")
 ```
 
 ```{r}
@@ -229,6 +239,14 @@ n <- sum(incidenceSex2$Count)
 incidenceSex2 <- mutate(incidenceSex2, Percent = 100*Count/n); incidenceSex2
 
 ggplot(incidenceSex2, aes(Sex, fill = Sex)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("Sex") + ggtitle("Incidences by Sex Group") + theme(legend.position="none")
+
+ggplot(incidenceSex2, aes(Sex, fill = Sex)) + 
+  geom_bar(aes(weight = Count/sum(Count))) +
+  ylab("Density") + 
+  xlab("Sex") + 
+  ggtitle("Incidences by Sex Group") + 
+  theme(legend.position="none")
+
 ```
 
 ```{r}
@@ -239,6 +257,15 @@ n <- sum(incidenceYOI2$Count)
 incidenceYOI2 <- mutate(incidenceYOI2, Percent = 100*Count/n); incidenceYOI2
 
 ggplot(incidenceYOI2, aes(Year.of.diagnosis, fill = Year.of.diagnosis)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("Year of Diagnosis") + ggtitle("Incidences by Year of Diagnosis") + theme(legend.position="none") + coord_flip()
+
+ggplot(incidenceYOI2, aes(Year.of.diagnosis, fill = Year.of.diagnosis)) +
+  geom_bar(aes(weight = Count/sum(Count))) +
+  ylab("Density") +
+  xlab("Year of Diagnosis") +
+  ggtitle("Incidences by Year of Diagnosis") +
+  theme(legend.position="none") +
+  coord_flip()
+
 ```
 
 ```{r}
@@ -249,5 +276,14 @@ n <- sum(incidenceRace2$Count)
 incidenceRace2 <- mutate(incidenceRace2, Percent = 100*Count/n); arrange(incidenceRace2, Count)
 
 ggplot(incidenceRace2, aes(reorder(Race, (Count)), fill = Race)) + geom_bar(aes(weight = Count)) + ylab("Count") + xlab("Race") + ggtitle("Incidence by Race") + theme(legend.position="none") +coord_flip()
+
+ggplot(incidenceRace2, aes(reorder(Race, (Count)), fill = Race)) +
+  geom_bar(aes(weight = Count/sum(Count))) +
+  ylab("Density") +
+  xlab("Race") +
+  ggtitle("Incidence by Race") +
+  theme(legend.position="none") +
+  coord_flip()
+
 ```
 
